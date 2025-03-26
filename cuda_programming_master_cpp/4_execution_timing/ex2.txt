@@ -1,0 +1,16 @@
+Submit the main function and kernel for the implementation. Also you have to submit the execution time of your implementation as well.
+
+Questions for this assignment
+1. Imagine you have 3 randomly initialized arrays with 2 to the power 22 elements (4194304). You have to write a CUDA program to sum up these three arrays in your device.  
+
+2. First write the c function to sum up these 3 arrays in CPU.
+
+3. Then write kernel and launch that kernel to sum up these three arrays in GPU.
+
+4. You have to use the CPU timer we discussed in the first section to measure the timing of your CPU and GPU implementations.
+
+5. You have to add CUDA error checking mechanism we discussed as well.
+
+6. Your grid should be 1Dimensional.
+
+7. Use 64, 128, 256, 512 as block size in X dimension and run your GPU implementations with each of these block configurations and measure the execution time.
