@@ -1,0 +1,90 @@
+#include <cstdlib>
+_#include <ctime>
+#include <stdio.h>
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
+#define gpuErrcheck(ans)                      \
+    {                                         \
+        gpuAssert((ans), __FILE__, __LINE__); \
+    }
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+{
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr, "GPU assert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort)
+            exit(code);
+    }
+}
+
+__global__ void sum_arrays_gpu(int *a, int *b, int *c, int *sum, int size)
+{
+    int global_x = threadIdx.x + blockIdx.x * blockDim.x;
+    int global_y = threadIdx.y + blockIdx.y * blockDim.y;
+    int global_z = threadIdx.z + blockIdx.z * blockDim.z;
+    int global_id = global_x + global_y * (gridDim.x * blockDim.x) + global_z * (gridDim.x * blockDim.x * gridDim.y * blockDim.y);
+    if (global_id < size)
+    {
+        sum[global_id] = a[global_id] + b[global_id] + c[global_id];
+    }
+}
+
+int main()
+{
+    const int SIZE = 4194304;
+    int NO_BYTES = SIZE * sizeof(int);
+
+    //----------------------------------CPU----------------------------------
+    int *h_arr1 = new int[SIZE];
+    int *h_arr2 = new int[SIZE];
+    int *h_arr3 = new int[SIZE];
+    int *h_sum_arr = new int[SIZE];
+
+    srand(time(0));
+    for (int i = 0; i < SIZE; i++)
+    {
+        h_arr1[i] = rand() % 100;
+        h_arr2[i] = rand() % 1000;
+        h_arr3[i] = rand() % 10000;
+    }
+
+    clock_t cpu_start, cpu_end;
+    cpu_start = clock();
+
+    for (int i = 0; i < SIZE; i++)
+    {
+        h_sum_arr[i] = h_arr1[i] + h_arr2[i] + h_arr3[i];
+    }
+
+    cpu_end = clock();
+    int duration = cpu_end - cpu_start;
+    printf("Execution time: %4.6f \n", (double)((double)duration / CLOCKS_PER_SEC));
+
+    //----------------------------------GPU----------------------------------
+    int *d_arr1, *d_arr2, *d_arr3, *d_sum_arr;
+    cudaMalloc(&d_arr1, NO_BYTES);
+    cudaMalloc(&d_arr2, NO_BYTES);
+    cudaMalloc(&d_arr3, NO_BYTES);
+    cudaMalloc(&d_sum_arr, NO_BYTES);
+
+    cudaMemcpy(d_arr1, h_arr1, NO_BYTES, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_arr2, h_arr2, NO_BYTES, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_arr3, h_arr3, NO_BYTES, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_sum_arr, h_sum_arr, NO_BYTES, cudaMemcpyHostToDevice);
+
+    dim3 block(8, 8, 16);
+    dim3 grid(4096);
+
+    clock_t gpu_start, gpu_end;
+    gpu_start = clock();
+    sum_arrays_gpu<<<grid, block>>>(d_arr1, d_arr2, d_arr3, d_sum_arr, SIZE);
+    cudaDeviceSynchronize();
+    gpu_end = clock();
+    printf("Execution time: %4.6f \n",
+           (double)((double)(gpu_end - gpu_start) / CLOCKS_PER_SEC));
+
+    return 0;
+}
+

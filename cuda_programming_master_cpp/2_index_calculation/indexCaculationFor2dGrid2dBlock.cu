@@ -5,15 +5,12 @@
 #
 //xác định chỉ số duy nhất cho mỗi thread
 __global__ void unique_idx_calc_threadId(int *input){
-    int num_threads_in_a_block = blockDim.x * blockDim.y;
-    int block_offset = num_threads_in_a_block * blockIdx.x;
+    int ix = threadIdx.x + blockIdx.x*blockDim.x;
+    int iy = threadIdx.y + blockIdx.y*blockDim.y;
+    int nx = blockDim.x * gridDim.x;
+    int idx = iy*nx + ix;
 
-    int num_threads_in_a_row = num_threads_in_a_block * gridDim.x;
-    int row_offset =  num_threads_in_a_row * blockIdx.y;
-
-    int tid = threadIdx.y*blockDim.x + threadIdx.x;
-    int gid = row_offset + block_offset + tid;
-    printf("gid: %d, value : %d\n", gid , input[gid]);
+    printf("idx: %d, value : %d\n", idx , input[idx]);
 }
 
 int main() {
